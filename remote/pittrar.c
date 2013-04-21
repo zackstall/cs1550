@@ -25,6 +25,7 @@ typedef struct{
 } MetaData;
 
 void compress(FILE * archive, char path[]);
+void store(FILE * archive, char path[]);
 
 int main (int argc, char **argv)
 {
@@ -68,9 +69,7 @@ int main (int argc, char **argv)
 		printf("Invalid archive location\n");
 		return 1;
 	}	
-	
 
-	
 	if (jflag)
 	{
 		fp = fopen(pittrar, "w+");
@@ -84,6 +83,14 @@ int main (int argc, char **argv)
 	}else if (cflag)
 	{
 		//call fxn
+		fp = fopen(pittrar, "w+");
+		//call fxn
+		DEBUG_PRINT(("Compressing file...\n"));
+		if(fp == NULL){
+			DEBUG_PRINT(("Program ending\n"));
+			exit(0);
+		}
+		store(fp, inputPath);
 	}else if (aflag)
 	{
 		//call fxn
@@ -97,7 +104,6 @@ int main (int argc, char **argv)
 	{
 		//call fxn
 	}
-	
 }
 
 void compress(FILE * archive, char * path)
@@ -185,6 +191,72 @@ void compress(FILE * archive, char * path)
 				}
 			}
 		}
+	}		
+}
+
+void store(FILE * archive, char * path)
+{
+	//write meta-->path name
+	//if file-->file contents
+	//if directory --> recurse contents
+	//create metadata
+	struct stat buf;
+	MetaData data;
+	
+	stat(path, &buf);
+	
+	//populate name
+	data.path_name_size = strlen(path) + 1;
+	
+	//populate permissions
+    sprintf(data.permissions, (buf.st_mode & S_IRUSR) ? "r" : "-");
+    sprintf(data.permissions+1, (buf.st_mode & S_IWUSR) ? "w" : "-");
+    sprintf(data.permissions+2, (buf.st_mode & S_IXUSR) ? "x" : "-");
+    sprintf(data.permissions+3, (buf.st_mode & S_IRGRP) ? "r" : "-");
+    sprintf(data.permissions+4, (buf.st_mode & S_IWGRP) ? "w" : "-");
+    sprintf(data.permissions+5, (buf.st_mode & S_IXGRP) ? "x" : "-");
+    sprintf(data.permissions+6, (buf.st_mode & S_IROTH) ? "r" : "-");
+    sprintf(data.permissions+7, (buf.st_mode & S_IWOTH) ? "w" : "-");
+    sprintf(data.permissions+8, (buf.st_mode & S_IXOTH) ? "x" : "-");
+	DEBUG_PRINT(("stats: %s, name: %s\n", data.permissions, path));
+	
+	//populate type (file or directory)
+	if(S_ISDIR(buf.st_mode))
+	{
+		data.type = DIRECTORY; 
 	}
-		
+	else{
+		data.type = FILE_TYPE;
+	}
+	
+	if(data.type == FILE_TYPE)
+	{
+
+	
+	}else
+	{
+		DIR * newPath;
+		newPath = opendir(path);
+		if(newPath != NULL)
+		{
+			struct dirent * entry;
+			while((entry = readdir(newPath)) != NULL)
+			{
+				const char * d_name;
+				
+				d_name = entry->d_name;
+				if(strcmp(d_name, ".") != 0 && strcmp(d_name, "..") != 0)
+				{
+					char * permanent_path = (char *) malloc(strlen(d_name) + strlen(path) + 2);
+					strcat(permanent_path, path);
+					strcat(permanent_path, "/");
+					strcat(permanent_path, d_name);
+					
+					store(archive, (char *)permanent_path);
+					free(permanent_path);
+				}
+			}
+		}
+	}
+	
 }
