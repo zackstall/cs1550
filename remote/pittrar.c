@@ -1,3 +1,4 @@
+#include <sys/wait.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -50,10 +51,10 @@ int main (int argc, char **argv)
     }
 
 	DEBUG_PRINT(("pittfile: %c\n", pitt_file));
-	
+
 	//get file to be modified
 	inputPath = argv[3];
-	
+
 	//check to see if given archive file matches .pitt format
 	pittrar = argv[2];
 	length = strlen(pittrar);
@@ -67,11 +68,11 @@ int main (int argc, char **argv)
 	{
 		printf("Invalid archive location\n");
 		return 1;
-	}	
-	
+	}
 
-	
-	
+
+
+
 	if (cflag)
 	{
 		//call fxn
@@ -98,20 +99,20 @@ int main (int argc, char **argv)
 		}
 		compress(fp, inputPath);
 	}
-	
+
 }
 
 void compress(FILE * archive, char * path)
-{	
+{
 	//create metadata
 	struct stat buf;
 	MetaData data;
-	
+
 	stat(path, &buf);
-	
+
 	//populate name
 	data.path_name_size = strlen(path) + 1;
-	
+
 	//populate permissions
     sprintf(data.permissions, (buf.st_mode & S_IRUSR) ? "r" : "-");
     sprintf(data.permissions+1, (buf.st_mode & S_IWUSR) ? "w" : "-");
@@ -123,16 +124,16 @@ void compress(FILE * archive, char * path)
     sprintf(data.permissions+7, (buf.st_mode & S_IWOTH) ? "w" : "-");
     sprintf(data.permissions+8, (buf.st_mode & S_IXOTH) ? "x" : "-");
 	DEBUG_PRINT(("stats: %s, name: %s\n", data.permissions, path));
-	
+
 	//populate type (file or directory)
 	if(S_ISDIR(buf.st_mode))
 	{
-		data.type = DIRECTORY; 
+		data.type = DIRECTORY;
 	}
 	else{
 		data.type = FILE_TYPE;
 	}
-	
+
 	if(data.type == FILE_TYPE)
 	{
 		if(path[strlen(path) - 1] == 'Z' && path[strlen(path) - 2] == '.')
@@ -172,7 +173,7 @@ void compress(FILE * archive, char * path)
 			while((entry = readdir(newPath)) != NULL)
 			{
 				const char * d_name;
-				
+
 				d_name = entry->d_name;
 				if(strcmp(d_name, ".") != 0 && strcmp(d_name, "..") != 0)
 				{
@@ -180,12 +181,12 @@ void compress(FILE * archive, char * path)
 					strcat(permanent_path, path);
 					strcat(permanent_path, "/");
 					strcat(permanent_path, d_name);
-					
+
 					compress(archive, (char *)permanent_path);
 					free(permanent_path);
 				}
 			}
 		}
 	}
-		
+
 }
