@@ -108,7 +108,7 @@ int main (int argc, char **argv)
 		//call fxn
 	}else if (pflag)
 	{
-		//call fxn
+		//use 
 	}else if (mflag)
 	{
 		//call fxn
