@@ -74,28 +74,35 @@ int main (int argc, char **argv)
 
 	if (jflag)
 	{
-		fp = fopen(pittrar, "w+");
-		//call fxn
-		DEBUG_PRINT(("Compressing file...\n"));
-		if(fp == NULL){
-			DEBUG_PRINT(("Program ending\n"));
-			exit(0);
+		if((cflag != 1 && aflag != 1))
+		{
+			printf("Cannot call flag J without flag a or flag c");
+			return 1;
 		}
+		//compress file(s) at input path
 		compress(inputPath);
 	}else if (cflag)
 	{
-		//call fxn
+		//open new writable file
 		fp = fopen(pittrar, "w+");
-		//call fxn
 		DEBUG_PRINT(("Compressing file...\n"));
 		if(fp == NULL){
 			DEBUG_PRINT(("Program ending\n"));
 			exit(0);
 		}
+		//call store function
 		store(fp, inputPath, jflag);
 	}else if (aflag)
 	{
-		//call fxn
+		//open file at the end (enabling append feature)
+		fp = fopen(pittrar, "a+");
+		DEBUG_PRINT(("Compressing file...\n"));
+		if(fp == NULL){
+			DEBUG_PRINT(("Program ending\n"));
+			exit(0);
+		}
+		//call store fucntion
+		store(fp, inputPath, jflag);
 	}else if (xflag)
 	{
 		//call fxn
