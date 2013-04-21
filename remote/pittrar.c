@@ -27,11 +27,13 @@ typedef struct{
 
 void store(FILE * archive, char path[], int isCompressed);
 void compress(char path[]);
+void walk_archive(FILE * archive, int (*callback)(char *, MetaData, FILE *));
+int print_meta(char * filepath, MetaData file_meta, FILE * file);
 
 int main (int argc, char **argv)
 {
 	FILE * fp;
-	int opt, cflag, aflag, xflag, pflag, mflag, jflag;
+	int opt, cflag = 0, aflag = 0, xflag = 0, pflag = 0, mflag = 0, jflag = 0;
 	int length, i;
 	char pitt_file;
 	char * pittrar;
@@ -43,11 +45,11 @@ int main (int argc, char **argv)
         switch (opt)
         {
 			case 'j': {jflag = 1; pitt_file = opt; DEBUG_PRINT(("J IS FOUND\n")); break;}
-       	 	case 'c': {cflag = 1; pitt_file = opt; DEBUG_PRINT(("C IS FOUND\n"));break;}
-	        case 'a': {aflag = 1; pitt_file = opt; break;}
-	        case 'x': {xflag = 1; pitt_file = opt; break;}
-	        case 'p': {pflag = 1; pitt_file = opt; break;}
-	        case 'm': {mflag = 1; pitt_file = opt; break;}
+       	 	case 'c': {cflag = 1; pitt_file = opt; DEBUG_PRINT(("C IS FOUND\n")); break;}
+	        case 'a': {aflag = 1; pitt_file = opt; DEBUG_PRINT(("A IS FOUND\n")); break;}
+	        case 'x': {xflag = 1; pitt_file = opt; DEBUG_PRINT(("X IS FOUND\n")); break;}
+	        case 'p': {pflag = 1; pitt_file = opt; DEBUG_PRINT(("P IS FOUND\n")); break;}
+	        case 'm': {mflag = 1; pitt_file = opt; DEBUG_PRINT(("M IS FOUND\n")); break;}
         }
     }
 
@@ -95,15 +97,21 @@ int main (int argc, char **argv)
 		store(fp, inputPath, jflag);
 	}else if (aflag)
 	{
+		DEBUG_PRINT(("At A\n"));
 		//call fxn
 	}else if (xflag)
 	{
+		DEBUG_PRINT(("At X\n"));
 		//call fxn
 	}else if (pflag)
 	{
+		DEBUG_PRINT(("At P\n"));
 		//call fxn
 	}else if (mflag)
 	{
+		fp = fopen(pittrar, "r");
+        DEBUG_PRINT(("I AM WALKING\n"));
+        walk_archive(fp, print_meta);
 		//call fxn
 	}
 }
@@ -180,14 +188,23 @@ void compress(char * path)
  ********************/
 void walk_archive(FILE * archive, int (*callback)(char *, MetaData, FILE *)){
     MetaData data;
-
-    fread(&data, sizeof(MetaData), 1, archive);
-
-
-
+    char * path_name;
+    while(1){
+        printf("I AMHERE\n");
+        fread(&data, sizeof(MetaData), 1, archive);
+        path_name = (char *)malloc(data.path_name_size);
+        fread(&data, data.path_name_size, 1, archive);
+        fread(path_name, data.path_name_size, 1, archive);
+        callback(path_name, data, archive);
+        free(path_name);
+        if(feof(archive)){
+            return;
+        }
+    }
 }
 
-int unarchive(char * filepath, MetaData file_meta, FILE * file){
+int print_meta(char * filepath, MetaData file_meta, FILE * file){
+    printf("Meta: %d, %d, %d, %d, %s, %s\n", file_meta.type, file_meta.compressed, file_meta.size, file_meta.path_name_size, file_meta.permissions, filepath);
     return 1;
 }
 
@@ -201,6 +218,9 @@ void store(FILE * archive, char * path, int isCompressed)
 
 	struct stat buf;
 	MetaData data;
+    data.size = 0;
+    data.type = 0;
+    data.path_name_size = 0;
 
 	stat(path, &buf);
 	//populate compressed
