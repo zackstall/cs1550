@@ -6,6 +6,7 @@
 #include <dirent.h>
 #include <string.h>
 #include <errno.h>
+#include <fcntl.h>
 
 #define DIRECTORY 1
 #define FILE_TYPE 0
@@ -118,7 +119,7 @@ int main (int argc, char **argv)
 		walk_archive(fp, expand_archive);
 	}else if (pflag)
 	{
-		//use 
+		//use
 		DEBUG_PRINT(("At P\n"));
 		//call fxn
 		fp = fopen(pittrar, "r");
@@ -359,19 +360,57 @@ int print_heirarchy(char * filepath, MetaData file_meta, FILE * file)
     return 1;
 }
 
+unsigned int return_permissions(char * str){
+    unsigned int p = 0;
+    if(str[0] == 'r'){
+        p |= S_IRUSR;
+    }
+    if(str[1] == 'w'){
+        p |= S_IWUSR;
+    }
+    if(str[2] == 'x'){
+        p |= S_IXUSR;
+    }
+    if(str[3] == 'r'){
+        p |= S_IRGRP;
+    }
+    if(str[4] == 'w'){
+        p |= S_IWGRP;
+    }
+    if(str[5] == 'x'){
+        p |= S_IXGRP;
+    }
+    if(str[6] == 'r'){
+        p |= S_IROTH;
+    }
+    if(str[7] == 'w'){
+        p |= S_IWOTH;
+    }
+    if(str[8] == 'x'){
+        p |= S_IXOTH;
+    }
+
+    return p;
+
+}
+
 int expand_archive(char * filepath, MetaData file_meta, FILE * file)
 {
 	FILE * fp;
     char * file_contents = (char *)malloc(file_meta.size);
+    unsigned int permissions = return_permissions(file_meta.permissions);
 	if(file_meta.type == DIRECTORY)
 	{
-		mkdir(filepath, S_IRWXU);
+		mkdir(filepath, permissions);
 	}
 	else
 	{
 		FILE * f;
+        int resource;
 	 	fread(file_contents, file_meta.size, 1, file);
-		f = fopen(filepath, "w");
+		resource = open(filepath, O_RDWR | O_CREAT, permissions);
+        close(resource);
+        f = fopen(filepath, "w");
 		if(f != NULL)
 		{
 			fwrite(file_contents, file_meta.size, 1, f);
@@ -399,10 +438,10 @@ int expand_archive(char * filepath, MetaData file_meta, FILE * file)
 		    else // fork failed
 		    {
 				printf("\n Fork failed, quitting!\n");
-				return;
+				return 1;
 		    }
 		}
-	    free(file_contents);		
+	    free(file_contents);
 	}
     return 1;
 }
