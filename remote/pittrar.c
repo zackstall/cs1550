@@ -69,7 +69,7 @@ int main (int argc, char **argv)
 	{
 		printf("Invalid archive location\n");
 		return 1;
-	}	
+	}
 
 
 	if (jflag)
@@ -167,8 +167,30 @@ void compress(char * path)
 				}
 			}
 		}
-	}		
+	}
 }
+
+/******************
+ * Callback function requirements:
+ *      int functionName(char * file_path, MetaData * file_meta_data, FILE * file);
+ *          file_path: Name of the file and relative path.
+ *          file_meta_data: data for that file
+ *          file: the start of the file, only read up to size
+ *      RETURN: Return whether you read from the file or not.
+ ********************/
+void walk_archive(FILE * archive, int (*callback)(char *, MetaData, FILE *)){
+    MetaData data;
+
+    fread(&data, sizeof(MetaData), 1, archive);
+
+
+
+}
+
+int unarchive(char * filepath, MetaData file_meta, FILE * file){
+    return 1;
+}
+
 
 void store(FILE * archive, char * path)
 {
@@ -178,12 +200,12 @@ void store(FILE * archive, char * path)
 	//create metadata
 	struct stat buf;
 	MetaData data;
-	
+
 	stat(path, &buf);
-	
+
 	//populate name
 	data.path_name_size = strlen(path) + 1;
-	
+
 	//populate permissions
     sprintf(data.permissions, (buf.st_mode & S_IRUSR) ? "r" : "-");
     sprintf(data.permissions+1, (buf.st_mode & S_IWUSR) ? "w" : "-");
@@ -195,20 +217,20 @@ void store(FILE * archive, char * path)
     sprintf(data.permissions+7, (buf.st_mode & S_IWOTH) ? "w" : "-");
     sprintf(data.permissions+8, (buf.st_mode & S_IXOTH) ? "x" : "-");
 	DEBUG_PRINT(("stats: %s, name: %s\n", data.permissions, path));
-	
+
 	//populate type (file or directory)
 	if(S_ISDIR(buf.st_mode))
 	{
-		data.type = DIRECTORY; 
+		data.type = DIRECTORY;
 	}
 	else{
 		data.type = FILE_TYPE;
 	}
-	
+
 	if(data.type == FILE_TYPE)
 	{
 
-	
+
 	}else
 	{
 		DIR * newPath;
@@ -219,7 +241,7 @@ void store(FILE * archive, char * path)
 			while((entry = readdir(newPath)) != NULL)
 			{
 				const char * d_name;
-				
+
 				d_name = entry->d_name;
 				if(strcmp(d_name, ".") != 0 && strcmp(d_name, "..") != 0)
 				{
@@ -227,7 +249,7 @@ void store(FILE * archive, char * path)
 					strcat(permanent_path, path);
 					strcat(permanent_path, "/");
 					strcat(permanent_path, d_name);
-					
+
 					store(archive, (char *)permanent_path);
 					free(permanent_path);
 				}
