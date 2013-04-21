@@ -25,7 +25,7 @@ typedef struct{
 	char permissions[10];
 } MetaData;
 
-void compress(FILE * archive, char path[]);
+void compress(char path[]);
 
 int main (int argc, char **argv)
 {
@@ -73,7 +73,18 @@ int main (int argc, char **argv)
 
 
 
-	if (cflag)
+
+	if (jflag)
+	{
+		fp = fopen(pittrar, "w+");
+		//call fxn
+		DEBUG_PRINT(("Compressing file...\n"));
+		if(fp == NULL){
+			DEBUG_PRINT(("Program ending\n"));
+			exit(0);
+		}
+		compress(inputPath);
+	}else if (cflag)
 	{
 		//call fxn
 	}else if (aflag)
@@ -88,53 +99,17 @@ int main (int argc, char **argv)
 	}else if (mflag)
 	{
 		//call fxn
-	}else if( jflag)
-	{
-		fp = fopen(pittrar, "w+");
-		//call fxn
-		DEBUG_PRINT(("Compressing file...\n"));
-		if(fp == NULL){
-			DEBUG_PRINT(("Program ending\n"));
-			exit(0);
-		}
-		compress(fp, inputPath);
 	}
 
 }
 
-void compress(FILE * archive, char * path)
+void compress(char * path)
 {
 	//create metadata
 	struct stat buf;
-	MetaData data;
-
 	stat(path, &buf);
 
-	//populate name
-	data.path_name_size = strlen(path) + 1;
-
-	//populate permissions
-    sprintf(data.permissions, (buf.st_mode & S_IRUSR) ? "r" : "-");
-    sprintf(data.permissions+1, (buf.st_mode & S_IWUSR) ? "w" : "-");
-    sprintf(data.permissions+2, (buf.st_mode & S_IXUSR) ? "x" : "-");
-    sprintf(data.permissions+3, (buf.st_mode & S_IRGRP) ? "r" : "-");
-    sprintf(data.permissions+4, (buf.st_mode & S_IWGRP) ? "w" : "-");
-    sprintf(data.permissions+5, (buf.st_mode & S_IXGRP) ? "x" : "-");
-    sprintf(data.permissions+6, (buf.st_mode & S_IROTH) ? "r" : "-");
-    sprintf(data.permissions+7, (buf.st_mode & S_IWOTH) ? "w" : "-");
-    sprintf(data.permissions+8, (buf.st_mode & S_IXOTH) ? "x" : "-");
-	DEBUG_PRINT(("stats: %s, name: %s\n", data.permissions, path));
-
-	//populate type (file or directory)
-	if(S_ISDIR(buf.st_mode))
-	{
-		data.type = DIRECTORY;
-	}
-	else{
-		data.type = FILE_TYPE;
-	}
-
-	if(data.type == FILE_TYPE)
+    if(!S_ISDIR(buf.st_mode))
 	{
 		if(path[strlen(path) - 1] == 'Z' && path[strlen(path) - 2] == '.')
 		{
@@ -182,7 +157,7 @@ void compress(FILE * archive, char * path)
 					strcat(permanent_path, "/");
 					strcat(permanent_path, d_name);
 
-					compress(archive, (char *)permanent_path);
+					compress((char *)permanent_path);
 					free(permanent_path);
 				}
 			}
