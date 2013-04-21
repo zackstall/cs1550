@@ -29,6 +29,8 @@ void store(FILE * archive, char path[], int isCompressed);
 void compress(char path[]);
 void walk_archive(FILE * archive, int (*callback)(char *, MetaData, FILE *));
 int print_meta(char * filepath, MetaData file_meta, FILE * file);
+int print_heirarchy(char * filepath, MetaData file_meta, FILE * file);
+int expand_archive(char * filepath, MetaData file_meta, FILE * file);
 
 int main (int argc, char **argv)
 {
@@ -83,7 +85,8 @@ int main (int argc, char **argv)
 		}
 		//compress file(s) at input path
 		compress(inputPath);
-	}else if (cflag)
+	}
+	if (cflag)
 	{
 		//open new writable file
 		fp = fopen(pittrar, "w+");
@@ -111,11 +114,15 @@ int main (int argc, char **argv)
 	{
 		DEBUG_PRINT(("At X\n"));
 		//call fxn
+		fp = fopen(pittrar, "r");
+		walk_archive(fp, expand_archive);
 	}else if (pflag)
 	{
 		//use 
 		DEBUG_PRINT(("At P\n"));
 		//call fxn
+		fp = fopen(pittrar, "r");
+		walk_archive(fp, print_heirarchy);
 	}else if (mflag)
 	{
 		fp = fopen(pittrar, "r");
@@ -213,8 +220,22 @@ void walk_archive(FILE * archive, int (*callback)(char *, MetaData, FILE *)){
     }
 }
 
-int print_meta(char * filepath, MetaData file_meta, FILE * file){
-    printf("Meta: %d, %d, %d, %d, %s, %s\n", file_meta.type, file_meta.compressed, file_meta.size, file_meta.path_name_size, file_meta.permissions, filepath);
+void print_shortened_path(char * path)
+{
+	int i;
+	for(i = strlen(path) - 1; i >= 0; i--)
+	{
+		if(path[i] == '/'){
+			printf("File: %s, ", (path + i + 1));
+			return;
+		}
+	}
+}
+
+int print_meta(char * filepath, MetaData file_meta, FILE * file)
+{
+	print_shortened_path(filepath);
+    printf("Meta: %d, %d, %d, %d, %s\n", file_meta.type, file_meta.compressed, file_meta.size, file_meta.path_name_size, file_meta.permissions);
 
     char * extra = (char *)malloc(file_meta.size);
     fread(extra, file_meta.size, 1, file);
@@ -272,6 +293,11 @@ void store(FILE * archive, char * path, int isCompressed)
 
 		//open and read file to buffer "string"
 		path_file = fopen(path, "r+");
+		if(path_file == NULL)
+		{
+			DEBUG_PRINT(("FILE IS DEAD %s\n", path));
+			exit(0);
+		}
 		fseek(path_file, 0, SEEK_END);
 		long fsize = ftell(path_file);
 		fseek(path_file, 0, SEEK_SET);
@@ -305,14 +331,73 @@ void store(FILE * archive, char * path, int isCompressed)
 				if(strcmp(d_name, ".") != 0 && strcmp(d_name, "..") != 0)
 				{
                     char * permanent_path = (char *) malloc(strlen(d_name) + strlen(path) + 2);
+					memset(permanent_path, 0, strlen(d_name) + strlen(path) + 2);
                     strcat(permanent_path, path);
+					DEBUG_PRINT(("permanent path: %s\n", permanent_path));
+
                     strcat(permanent_path, "/");
                     strcat(permanent_path, d_name);
-
+					DEBUG_PRINT(("permanent path: %s\n", permanent_path));
 					store(archive, (char *)permanent_path, isCompressed);
 					free(permanent_path);
 				}
 			}
 		}
 	}
+}
+
+int print_heirarchy(char * filepath, MetaData file_meta, FILE * file)
+{
+    printf("%s\n", filepath);
+    char * extra = (char *)malloc(file_meta.size);
+    fread(extra, file_meta.size, 1, file);
+    free(extra);
+    return 1;
+}
+
+int expand_archive(char * filepath, MetaData file_meta, FILE * file)
+{
+	
+	FILE * fp;
+    char * file_contents = (char *)malloc(file_meta.size);
+   if(file_meta.type == DIRECTORY){
+		mkdir(filepath, S_IRWXU);
+	}
+	else{
+		FILE * f;
+	 	fread(file_contents, file_meta.size, 1, file);
+		f = fopen(filepath, "w");
+		if(f != NULL){
+			fwrite(file_contents, file_meta.size, 1, f);
+			fclose(f);
+		}
+		if(file_meta.compressed){
+			int childId = fork();
+			char * argv[] = {"compress", "-d", filepath, NULL};
+			int wait_status;
+			if(childId >= 0) // fork was successful
+			    {
+				if(childId == 0) // child process
+				{
+						DEBUG_PRINT(("Compressing execvp %s  \n", filepath));
+						execv("compress", argv);
+						perror("Didn't work:");
+						DEBUG_PRINT(("THIS CANT HAPPEN\n"));
+				}
+				else //Parent process
+				{
+						wait(&wait_status);
+				}
+			    }
+			    else // fork failed
+			    {
+				printf("\n Fork failed, quitting!\n");
+				return;
+			    }
+
+			}
+	    free(file_contents);		
+	}
+
+    return 1;
 }
