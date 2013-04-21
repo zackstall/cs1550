@@ -201,20 +201,24 @@ void compress(char * path)
  *          file: the start of the file, only read up to size
  *      RETURN: Return whether you read from the file or not.
  ********************/
-void walk_archive(FILE * archive, int (*callback)(char *, MetaData, FILE *)){
+void walk_archive(FILE * archive, int (*callback)(char *, MetaData, FILE *))
+	{
     MetaData data;
     char * path_name;
-    while(1){
+    while(1)
+	{
         int count;
         count = fread(&data, sizeof(MetaData), 1, archive);
-        if(count <  1){
+        if(count <  1)
+		{
             return;
         }
         path_name = (char *)malloc(data.path_name_size);
         fread(path_name, data.path_name_size, 1, archive);
         callback(path_name, data, archive);
         free(path_name);
-        if(feof(archive)){
+        if(feof(archive))
+		{
             return;
         }
     }
@@ -357,47 +361,48 @@ int print_heirarchy(char * filepath, MetaData file_meta, FILE * file)
 
 int expand_archive(char * filepath, MetaData file_meta, FILE * file)
 {
-	
 	FILE * fp;
     char * file_contents = (char *)malloc(file_meta.size);
-   if(file_meta.type == DIRECTORY){
+	if(file_meta.type == DIRECTORY)
+	{
 		mkdir(filepath, S_IRWXU);
 	}
-	else{
+	else
+	{
 		FILE * f;
 	 	fread(file_contents, file_meta.size, 1, file);
 		f = fopen(filepath, "w");
-		if(f != NULL){
+		if(f != NULL)
+		{
 			fwrite(file_contents, file_meta.size, 1, f);
 			fclose(f);
 		}
-		if(file_meta.compressed){
+		if(file_meta.compressed)
+		{
 			int childId = fork();
 			char * argv[] = {"compress", "-d", filepath, NULL};
 			int wait_status;
 			if(childId >= 0) // fork was successful
-			    {
-				if(childId == 0) // child process
-				{
-						DEBUG_PRINT(("Compressing execvp %s  \n", filepath));
-						execv("compress", argv);
-						perror("Didn't work:");
-						DEBUG_PRINT(("THIS CANT HAPPEN\n"));
-				}
-				else //Parent process
-				{
-						wait(&wait_status);
-				}
-			    }
-			    else // fork failed
-			    {
+			{
+					if(childId == 0) // child process
+					{
+							DEBUG_PRINT(("Compressing execvp %s  \n", filepath));
+							execv("compress", argv);
+							perror("Didn't work:");
+							DEBUG_PRINT(("THIS CANT HAPPEN\n"));
+					}
+					else //Parent process
+					{
+							wait(&wait_status);
+					}
+			}
+		    else // fork failed
+		    {
 				printf("\n Fork failed, quitting!\n");
 				return;
-			    }
-
-			}
+		    }
+		}
 	    free(file_contents);		
 	}
-
     return 1;
 }
