@@ -71,8 +71,17 @@ int main (int argc, char **argv)
 	
 
 	
-	
-	if (cflag)
+	if (jflag)
+	{
+		fp = fopen(pittrar, "w+");
+		//call fxn
+		DEBUG_PRINT(("Compressing file...\n"));
+		if(fp == NULL){
+			DEBUG_PRINT(("Program ending\n"));
+			exit(0);
+		}
+		compress(fp, inputPath);
+	}else if (cflag)
 	{
 		//call fxn
 	}else if (aflag)
@@ -87,16 +96,6 @@ int main (int argc, char **argv)
 	}else if (mflag)
 	{
 		//call fxn
-	}else if( jflag)
-	{
-		fp = fopen(pittrar, "w+");
-		//call fxn
-		DEBUG_PRINT(("Compressing file...\n"));
-		if(fp == NULL){
-			DEBUG_PRINT(("Program ending\n"));
-			exit(0);
-		}
-		compress(fp, inputPath);
 	}
 	
 }
