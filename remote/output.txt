@@ -1,17 +1,12 @@
 M IS FOUND
 pittfile: m
 pitt archive file is archive.pitt, i is 7
-I AM WALKING
-I AMHERE
 test path name
 Meta: 1, 0, 0, 5, rwxrwxr-x, test
-I AMHERE
 test/test2.txt path name
 Meta: 0, 0, 0, 15, rw-rw-r--, test/test2.txt
-I AMHERE
-`rœ path name
-Meta: 1819043176, 171057263, 0, 0, , `rœ
-I AMHERE
+`2M path name
+Meta: 1819043176, 171057263, 0, 0, , `2M
 * Copyright (c) 1985, 1986 The Regents of the University of California.
  * All rights reserved.
  *

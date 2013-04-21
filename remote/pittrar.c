@@ -118,7 +118,6 @@ int main (int argc, char **argv)
 	}else if (mflag)
 	{
 		fp = fopen(pittrar, "r");
-        DEBUG_PRINT(("I AM WALKING\n"));
         walk_archive(fp, print_meta);
 		//call fxn
 	}
@@ -198,11 +197,13 @@ void walk_archive(FILE * archive, int (*callback)(char *, MetaData, FILE *)){
     MetaData data;
     char * path_name;
     while(1){
-        printf("I AMHERE\n");
-        fread(&data, sizeof(MetaData), 1, archive);
+        int count;
+        count = fread(&data, sizeof(MetaData), 1, archive);
+        if(count <  1){
+            return;
+        }
         path_name = (char *)malloc(data.path_name_size);
         fread(path_name, data.path_name_size, 1, archive);
-        DEBUG_PRINT(("%s path name\n", path_name));
         callback(path_name, data, archive);
         free(path_name);
         if(feof(archive)){
@@ -212,9 +213,9 @@ void walk_archive(FILE * archive, int (*callback)(char *, MetaData, FILE *)){
 }
 
 int print_meta(char * filepath, MetaData file_meta, FILE * file){
-    char * extra = (char *)malloc(file_meta.size);
     printf("Meta: %d, %d, %d, %d, %s, %s\n", file_meta.type, file_meta.compressed, file_meta.size, file_meta.path_name_size, file_meta.permissions, filepath);
 
+    char * extra = (char *)malloc(file_meta.size);
     fread(extra, file_meta.size, 1, file);
     free(extra);
     return 1;
@@ -264,11 +265,9 @@ void store(FILE * archive, char * path, int isCompressed)
 	if(data.type == FILE_TYPE)
 	{
 		//write meta data to archive
-		fwrite((void *)&data, sizeof(data), 1, archive);
 
 		//write path name (string) to archive
 
-		fwrite(path, data.path_name_size, 1, archive);
 
 		//open and read file to buffer "string"
 		path_file = fopen(path, "r+");
@@ -277,10 +276,14 @@ void store(FILE * archive, char * path, int isCompressed)
 		fseek(path_file, 0, SEEK_SET);
 		char *string = malloc(fsize);
 		fread(string, fsize, 1, path_file);
+        data.size = fsize;
 		fclose(path_file);
 
         DEBUG_PRINT(("writing file..%s\n", path));
 		//write file contents to archive
+        printf("Meta: %d, %d, %d, %d, %s, %s\n", data.type, data.compressed, data.size, data.path_name_size, data.permissions, path);
+		fwrite((void *)&data, sizeof(data), 1, archive);
+		fwrite(path, data.path_name_size, 1, archive);
 		fwrite(string, fsize, 1, archive);
 	}else
 	{
