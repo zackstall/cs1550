@@ -201,8 +201,8 @@ void walk_archive(FILE * archive, int (*callback)(char *, MetaData, FILE *)){
         printf("I AMHERE\n");
         fread(&data, sizeof(MetaData), 1, archive);
         path_name = (char *)malloc(data.path_name_size);
-        fread(&data, data.path_name_size, 1, archive);
         fread(path_name, data.path_name_size, 1, archive);
+        DEBUG_PRINT(("%s path name\n", path_name));
         callback(path_name, data, archive);
         free(path_name);
         if(feof(archive)){
@@ -212,7 +212,11 @@ void walk_archive(FILE * archive, int (*callback)(char *, MetaData, FILE *)){
 }
 
 int print_meta(char * filepath, MetaData file_meta, FILE * file){
+    char * extra = (char *)malloc(file_meta.size);
     printf("Meta: %d, %d, %d, %d, %s, %s\n", file_meta.type, file_meta.compressed, file_meta.size, file_meta.path_name_size, file_meta.permissions, filepath);
+
+    fread(extra, file_meta.size, 1, file);
+    free(extra);
     return 1;
 }
 
@@ -275,6 +279,7 @@ void store(FILE * archive, char * path, int isCompressed)
 		fread(string, fsize, 1, path_file);
 		fclose(path_file);
 
+        DEBUG_PRINT(("writing file..%s\n", path));
 		//write file contents to archive
 		fwrite(string, fsize, 1, archive);
 	}else
@@ -283,7 +288,11 @@ void store(FILE * archive, char * path, int isCompressed)
 		newPath = opendir(path);
 		if(newPath != NULL)
 		{
-			struct dirent * entry;
+            DEBUG_PRINT(("writing folder..%s\n", path));
+            fwrite((void *)&data, sizeof(data), 1, archive);
+            fwrite(path, data.path_name_size, 1, archive);
+
+            struct dirent * entry;
 			while((entry = readdir(newPath)) != NULL)
 			{
 				const char * d_name;
@@ -291,12 +300,10 @@ void store(FILE * archive, char * path, int isCompressed)
 				d_name = entry->d_name;
 				if(strcmp(d_name, ".") != 0 && strcmp(d_name, "..") != 0)
 				{
-					char * permanent_path = (char *) malloc(strlen(d_name) + strlen(path) + 2);
-					strcat(permanent_path, path);
-					strcat(permanent_path, "/");
-					strcat(permanent_path, d_name);
-					fwrite((void *)&data, sizeof(data), 1, archive);
-					fwrite(path, data.path_name_size, 1, archive);
+                    char * permanent_path = (char *) malloc(strlen(d_name) + strlen(path) + 2);
+                    strcat(permanent_path, path);
+                    strcat(permanent_path, "/");
+                    strcat(permanent_path, d_name);
 
 					store(archive, (char *)permanent_path, isCompressed);
 					free(permanent_path);
