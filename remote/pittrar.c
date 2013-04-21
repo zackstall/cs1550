@@ -25,7 +25,7 @@ typedef struct{
 	char permissions[10];
 } MetaData;
 
-void store(FILE * archive, char path[]);
+void store(FILE * archive, char path[], int isCompressed);
 void compress(char path[]);
 
 int main (int argc, char **argv)
@@ -92,7 +92,7 @@ int main (int argc, char **argv)
 			DEBUG_PRINT(("Program ending\n"));
 			exit(0);
 		}
-		store(fp, inputPath);
+		store(fp, inputPath, jflag);
 	}else if (aflag)
 	{
 		//call fxn
@@ -170,16 +170,20 @@ void compress(char * path)
 	}		
 }
 
-void store(FILE * archive, char * path)
+void store(FILE * archive, char * path, int isCompressed)
 {
 	//write meta-->path name
 	//if file-->file contents
 	//if directory --> recurse contents
 	//create metadata
+	FILE * path_file;
+	
 	struct stat buf;
 	MetaData data;
 	
 	stat(path, &buf);
+	//populate compressed
+	data.compressed = isCompressed;
 	
 	//populate name
 	data.path_name_size = strlen(path) + 1;
@@ -200,15 +204,31 @@ void store(FILE * archive, char * path)
 	if(S_ISDIR(buf.st_mode))
 	{
 		data.type = DIRECTORY; 
-	}
-	else{
+	}else
+	{
 		data.type = FILE_TYPE;
 	}
 	
 	if(data.type == FILE_TYPE)
 	{
-
-	
+		//write meta data to archive
+		fwrite((void *)&data, sizeof(data), 1, archive);
+		
+		//write path name (string) to archive
+		
+		fwrite(path, data.path_name_size, 1, archive);
+		
+		//open and read file to buffer "string"
+		path_file = fopen(path, "r+");
+		fseek(path_file, 0, SEEK_END);
+		long fsize = ftell(path_file);
+		fseek(path_file, 0, SEEK_SET);
+		char *string = malloc(fsize);
+		fread(string, fsize, 1, path_file);
+		fclose(path_file);
+		
+		//write file contents to archive
+		fwrite(string, fsize, 1, archive);
 	}else
 	{
 		DIR * newPath;
@@ -227,12 +247,13 @@ void store(FILE * archive, char * path)
 					strcat(permanent_path, path);
 					strcat(permanent_path, "/");
 					strcat(permanent_path, d_name);
+					fwrite((void *)&data, sizeof(data), 1, archive);
+					fwrite(path, data.path_name_size, 1, archive);
 					
-					store(archive, (char *)permanent_path);
+					store(archive, (char *)permanent_path, isCompressed);
 					free(permanent_path);
 				}
 			}
 		}
 	}
-
 }
